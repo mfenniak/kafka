@@ -24,6 +24,8 @@ import org.apache.kafka.streams.processor.AbstractProcessor;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 
+import java.util.Objects;
+
 /**
  * KTable repartition map functions are not exposed to public APIs, but only used for keyed aggregations.
  *
@@ -80,16 +82,23 @@ public class KTableRepartitionMap<K, V, K1, V1> implements KTableProcessorSuppli
             KeyValue<K1, V1> newPair = change.newValue == null ? null : mapper.apply(key, change.newValue);
             KeyValue<K1, V1> oldPair = change.oldValue == null ? null : mapper.apply(key, change.oldValue);
 
-            // if the selected repartition key or value is null, skip
-            // forward oldPair first, to be consistent with reduce and aggregate
-            if (oldPair != null && oldPair.key != null && oldPair.value != null) {
-                context().forward(oldPair.key, new Change<>(null, oldPair.value));
-            }
+            if (oldPair != null && newPair != null && Objects.equals(newPair.key, oldPair.key)) {
+                // mapped key did not key change for this Change.  We can be confident that
+                // no key change means no partition change between the oldValue & newValue, so
+                // we can just forward this change along directly; this reduces the number of
+                // downstream re-calculations.
+                context().forward(newPair.key, new Change<>(newPair.value, oldPair.value));
+            } else {
+                // if the selected repartition key or value is null, skip
+                // forward oldPair first, to be consistent with reduce and aggregate
+                if (oldPair != null && oldPair.key != null && oldPair.value != null) {
+                    context().forward(oldPair.key, new Change<>(null, oldPair.value));
+                }
 
-            if (newPair != null && newPair.key != null && newPair.value != null) {
-                context().forward(newPair.key, new Change<>(newPair.value, null));
+                if (newPair != null && newPair.key != null && newPair.value != null) {
+                    context().forward(newPair.key, new Change<>(newPair.value, null));
+                }
             }
-            
         }
     }
 
