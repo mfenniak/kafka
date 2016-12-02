@@ -23,6 +23,8 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.StreamPartitioner;
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 
+import java.util.Comparator;
+
 /**
  * {@link KTable} is an abstraction of a <i>changelog stream</i> from a primary-keyed table.
  * Each record in this stream is an update on the primary-keyed table with the record key as the primary key.
@@ -58,6 +60,25 @@ public interface KTable<K, V> {
      * @return a {@link KTable} that contains only those records that do not satisfy the given predicate
      */
     KTable<K, V> filterNot(Predicate<K, V> predicate);
+
+    /**
+     * Creates a new instance of {@link KTable} that filters out redundant updates and prevents "non-updates" from
+     * propagating to further operations on the returned table.  A redundant update onewhere the same value is provided
+     * more than once for a given key.  Object.equals is used to compare whether a subsequent update has the same value.
+
+     * @return a {@link KTable} that contains the same values as this table, but suppresses redundant updates
+     */
+    KTable<K, V> filterRedundant();
+
+    /**
+     * Creates a new instance of {@link KTable} that filters out redundant updates and prevents "non-updates" from
+     * propagating to further operations on the returned table.  A redundant update onewhere the same value is provided
+     * more than once for a given key.  A user-provided comparator is used to compare whether a subsequent update has
+     * the same value.
+
+     * @return a {@link KTable} that contains the same values as this table, but suppresses redundant updates
+     */
+    KTable<K, V> filterRedundant(Comparator<V> comparator);
 
     /**
      * Create a new instance of {@link KTable} by transforming the value of each element in this stream into a new value in the new stream.

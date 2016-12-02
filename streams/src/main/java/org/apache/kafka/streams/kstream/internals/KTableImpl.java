@@ -35,6 +35,7 @@ import org.apache.kafka.streams.processor.StreamPartitioner;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -105,6 +106,23 @@ public class KTableImpl<K, S, V> extends AbstractStream<K> implements KTable<K, 
         String name = topology.newName(FILTER_NAME);
         KTableProcessorSupplier<K, V, V> processorSupplier = new KTableFilter<>(this, predicate, true);
 
+        topology.addProcessor(name, processorSupplier, this.name);
+
+        return new KTableImpl<>(topology, name, processorSupplier, sourceNodes, this.storeName);
+    }
+
+    @Override
+    public KTable<K, V> filterRedundant() {
+        return this.filterRedundant(new KTableFilterRedundant.DefaultComparator<V>());
+    }
+
+    @Override
+    public KTable<K, V> filterRedundant(Comparator<V> comparator) {
+        Objects.requireNonNull(comparator, "comparator can't be null");
+        String name = topology.newName(FILTER_NAME);
+        KTableProcessorSupplier<K, V, V> processorSupplier = new KTableFilterRedundant<>(this, comparator);
+
+        this.enableSendingOldValues();
         topology.addProcessor(name, processorSupplier, this.name);
 
         return new KTableImpl<>(topology, name, processorSupplier, sourceNodes, this.storeName);
