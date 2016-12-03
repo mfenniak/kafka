@@ -21,17 +21,15 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.test.*;
+import org.apache.kafka.test.KStreamTestDriver;
+import org.apache.kafka.test.MockProcessorSupplier;
+import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class KTableFilterRedundantTest {
 
@@ -80,7 +78,7 @@ public class KTableFilterRedundantTest {
         driver.process(topic1, "B", null);
         driver.flushState();
 
-        proc2.checkAndClearProcessResult("A:null", "B:2", "C:4", "D:5", "A:null", "B:null");
+        proc2.checkAndClearProcessResult("A:1", "B:2", "C:4", "D:5", "A:null", "B:null");
     }
 
     /*
